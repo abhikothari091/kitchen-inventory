@@ -1,5 +1,6 @@
 import { AuthProvider } from "@/components/auth-provider";
 import { BottomNav } from "@/components/bottom-nav";
+import { LowStockNotifier } from "@/components/low-stock-notifier";
 import { Toaster } from "@/components/ui/sonner";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 max-w-lg mx-auto w-full">{children}</main>
         <BottomNav />
       </div>
+      <LowStockNotifier />
       <Toaster position="top-center" richColors />
     </AuthProvider>
   );
