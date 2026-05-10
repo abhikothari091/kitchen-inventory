@@ -9,7 +9,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <div className="flex flex-col min-h-screen pb-16">
-        <main className="flex-1 max-w-lg mx-auto w-full">{children}</main>
+        <main className="flex-1 max-w-lg mx-auto w-full px-4">{children}</main>
         <BottomNav />
       </div>
       <LowStockNotifier />
