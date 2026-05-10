@@ -257,7 +257,9 @@ export function ItemForm({
             }
           >
             <SelectTrigger>
-              <SelectValue placeholder="None" />
+              <SelectValue placeholder="None">
+                {locations.find((l) => l.id === watch("location_id"))?.name || "None"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
@@ -278,7 +280,9 @@ export function ItemForm({
             }
           >
             <SelectTrigger>
-              <SelectValue placeholder="None" />
+              <SelectValue placeholder="None">
+                {categories.find((c) => c.id === watch("category_id"))?.name || "None"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
