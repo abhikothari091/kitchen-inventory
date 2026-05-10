@@ -75,13 +75,16 @@ export function CookingSession({
     if (item.tracking_mode === "counted") {
       change.delta = -1;
     } else if (item.tracking_mode === "status") {
+      change.type = "state";
       const current = (item.state as StatusState) || "plenty";
-      change.type = "state";
-      change.newState = getNextState(current, [...STATUS_CYCLE].reverse() as unknown as StatusState[]);
+      if (current === "plenty") change.newState = "low";
+      else change.newState = "out";
     } else {
-      const current = (item.state as BagState) || "full";
       change.type = "state";
-      change.newState = getNextState(current, [...BAG_CYCLE].reverse() as unknown as BagState[]);
+      const current = (item.state as BagState) || "full";
+      if (current === "full") change.newState = "half";
+      else if (current === "half") change.newState = "low";
+      else change.newState = "empty";
     }
     setChanges(new Map(changes).set(item.id, change));
   }
@@ -267,8 +270,21 @@ export function CookingSession({
                   )}
 
                   {isSelected && item.tracking_mode !== "counted" && (
-                    <Badge variant="secondary" className="text-xs">
-                      {change?.newState}
+                    <Badge
+                      variant="secondary"
+                      className="text-xs cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!change) return;
+                        const states = item.tracking_mode === "status"
+                          ? STATUS_CYCLE
+                          : BAG_CYCLE;
+                        const idx = states.indexOf(change.newState as never);
+                        const next = states[(idx + 1) % states.length];
+                        setChanges(new Map(changes).set(item.id, { ...change, newState: next }));
+                      }}
+                    >
+                      {change?.newState} ↻
                     </Badge>
                   )}
                 </div>
