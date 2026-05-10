@@ -139,46 +139,62 @@ export function VoiceInput({
   );
 }
 
+const WORD_NUMS: Record<string, number> = {
+  a: 1, an: 1, one: 1, some: 2, two: 2, three: 3, four: 4, five: 5,
+  six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
+};
+
+const UNIT_PATTERN = "cans?|jars?|bags?|boxes?|bottles?|packs?|rolls?|pcs|pieces?|cartons?|bunch(?:es)?|loaves?|loaf|dozen|lbs?|kg|oz|liters?|gallons?";
+
+function parseNumber(s: string): number | undefined {
+  const n = parseInt(s);
+  if (!isNaN(n)) return n;
+  return WORD_NUMS[s.toLowerCase()];
+}
+
 export function parseVoiceItem(transcript: string): {
   name: string;
   quantity?: number;
   unit?: string;
   location?: string;
 } {
-  const text = transcript.toLowerCase().trim();
+  let text = transcript.toLowerCase().trim();
 
-  const patterns = [
-    /^(\d+)\s+(cans?|jars?|bags?|boxes?|bottles?|packs?|rolls?|pcs|pieces?)\s+(?:of\s+)?(.+?)(?:\s+in\s+(?:the\s+)?(.+))?$/,
-    /^(\d+)\s+(.+?)(?:\s+in\s+(?:the\s+)?(.+))?$/,
-    /^(?:a\s+)?(.+?)(?:\s+in\s+(?:the\s+)?(.+))?$/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) {
-      if (pattern === patterns[0]) {
-        return {
-          quantity: parseInt(match[1]),
-          unit: match[2].replace(/s$/, ""),
-          name: match[3].trim(),
-          location: match[4]?.trim(),
-        };
-      }
-      if (pattern === patterns[1]) {
-        return {
-          quantity: parseInt(match[1]),
-          name: match[2].trim(),
-          location: match[3]?.trim(),
-        };
-      }
-      return {
-        name: match[1].trim(),
-        location: match[2]?.trim(),
-      };
-    }
+  let location: string | undefined;
+  const locMatch = text.match(/\s+in\s+(?:the\s+)?(.+?)$/);
+  if (locMatch) {
+    location = locMatch[1].trim();
+    text = text.slice(0, locMatch.index).trim();
   }
 
-  return { name: text };
+  const numWord = Object.keys(WORD_NUMS).join("|");
+  const qtyUnitRe = new RegExp(`^(\\d+|${numWord})\\s+(${UNIT_PATTERN})\\s+(?:of\\s+)?(.+)$`, "i");
+  const qtyUnitMatch = text.match(qtyUnitRe);
+  if (qtyUnitMatch) {
+    return {
+      quantity: parseNumber(qtyUnitMatch[1]),
+      unit: qtyUnitMatch[2].replace(/s$/, "").replace(/ves$/, "f"),
+      name: qtyUnitMatch[3].trim(),
+      location,
+    };
+  }
+
+  const qtyRe = new RegExp(`^(\\d+|${numWord})\\s+(.+)$`, "i");
+  const qtyMatch = text.match(qtyRe);
+  if (qtyMatch) {
+    return {
+      quantity: parseNumber(qtyMatch[1]),
+      name: qtyMatch[2].trim(),
+      location,
+    };
+  }
+
+  const aMatch = text.match(/^(?:a|an)\s+(.+)$/);
+  if (aMatch) {
+    return { quantity: 1, name: aMatch[1].trim(), location };
+  }
+
+  return { name: text, location };
 }
 
 export function parseVoiceBatch(
@@ -190,17 +206,15 @@ export function parseVoiceBatch(
     .filter(Boolean);
 
   return items.map((item) => {
-    const match = item.match(
-      /^(\d+|a|an|some|two|three|four|five|six|seven|eight|nine|ten)\s+(?:(cans?|jars?|bags?|boxes?|bottles?|packs?|rolls?|pcs|pieces?)\s+(?:of\s+)?)?(.+)$/i
+    const numWord = Object.keys(WORD_NUMS).concat(["some"]).join("|");
+    const re = new RegExp(
+      `^(\\d+|${numWord})\\s+(?:(${UNIT_PATTERN})\\s+(?:of\\s+)?)?(.+)$`,
+      "i"
     );
+    const match = item.match(re);
 
     if (match) {
-      const wordNums: Record<string, number> = {
-        a: 1, an: 1, some: 2, two: 2, three: 3, four: 4, five: 5,
-        six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
-      };
-      const qty =
-        wordNums[match[1].toLowerCase()] ?? parseInt(match[1]) ?? 1;
+      const qty = parseNumber(match[1]) ?? (match[1].toLowerCase() === "some" ? 2 : 1);
       return {
         quantity: qty,
         unit: match[2]?.replace(/s$/, ""),

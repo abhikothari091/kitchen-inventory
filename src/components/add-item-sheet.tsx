@@ -103,14 +103,27 @@ export function AddItemSheet({
 
   function handleVoiceResult(transcript: string) {
     const parsed = parseVoiceItem(transcript);
-    const locationMatch = locations.find(
-      (l) => l.name.toLowerCase() === parsed.location?.toLowerCase()
-    );
+
+    const fuzzyMatch = <T extends { name: string }>(list: T[], query?: string) => {
+      if (!query) return undefined;
+      const q = query.toLowerCase();
+      return (
+        list.find((l) => l.name.toLowerCase() === q) ||
+        list.find((l) => l.name.toLowerCase().includes(q)) ||
+        list.find((l) => q.includes(l.name.toLowerCase()))
+      );
+    };
+
+    const locationMatch = fuzzyMatch(locations, parsed.location);
+    const categoryMatch = fuzzyMatch(categories, parsed.name);
+
     setPrefill({
       name: parsed.name,
       quantity: parsed.quantity,
       unit: parsed.unit,
+      tracking_mode: parsed.quantity ? "counted" : undefined,
       location_id: locationMatch?.id,
+      category_id: categoryMatch?.id,
     });
     setMode("manual");
   }
